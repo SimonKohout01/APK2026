@@ -1,0 +1,277 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[czech]{babel}
+
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{url}
+
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{zdroje.bib}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    {\large UNIVERZITA KARLOVA\par}
+    \vspace{0.2cm}
+    {\large {Přírodovědecká fakulta}\par}
+    \vspace{0.2cm}
+    {\large Katedra aplikované geoinformatiky a kartografie\par}
+
+    \vspace{2cm}
+
+    {\large Studijní program:\par}
+    \vspace{0.2cm}
+    {\large Geoinformatika, kartografie a dálkový průzkum Země\par}
+
+    \vspace{2cm}
+
+    \includegraphics[width=5cm]{logo.png}\par
+
+    \vspace{1cm}
+
+    {\large \textbf{Jakub Fuchsig, Šimon Kohout}\par}
+    \vspace{1cm}
+    {\Large \textbf{Geometrické vyhledávání bodu}\par}
+    \vspace{2cm}  
+    {\large Ústí nad Labem, Zákupy 2025\par} 
+\end{titlepage}
+
+\section{Zadání}
+
+Vstup: Souvislá polygonová mapa $n$ polygonů $\{P_1, ..., P_n\}$, analyzovaný bod $q$.
+
+
+Výstup: $P_i$,  $q \in P_i$. 
+
+
+Nad polygonovou mapou implementujete Ray Crossing Algorithm pro geometrické vyhledání incidujícího polygonu obsahujícího zadaný bod $q$.
+
+Nalezený polygon graficky zvýrazněte vhodným způsobem (např. vyplněním, šrafováním, blikáním). Grafické rozhraní vytvořte s využitím frameworku \textit{QT}. 
+
+Pro generování nekonvexních polygonů můžete navrhnout vlastní algoritmus či použít existující geografická data (např. mapa evropských států).
+
+Polygony budou načítány z textového souboru ve Vámi zvoleném formátu. Pro datovou reprezentaci jednotlivých polygonů použijte špagetový model.
+
+\section{Zpracované bonusové úlohy}
+
+Pro tuto úlohu byly zpracovány níže vypsané úlohy společně s jejich ohodnocením.
+
+\begin{small}
+\begin{longtable}{|p{12cm}|c|}
+    \hline
+    \textbf{Krok} & \textbf{Hodnocení} \\
+    \hline
+    \endfirsthead
+    
+    \hline
+    \textbf{Krok} & \textbf{Hodnocení} \\
+    \hline
+    \endhead
+
+    Detekce polohy bodu rozlišující stavy uvnitř, vně polygonu. & 10b \\
+    \hline
+    \textit{Analýza polohy bodu (uvnitř/vně) metodou Winding Number Algorithm.} & +10b \\
+    \hline
+    \textit{Ošetření singulárního případu u Winding Number Algorithm: bod leží na hraně polygonu.} & +5b \\
+    \hline
+    \textit{Ošetření singulárního případu u Ray Crossing Algorithm: bod leží na hraně polygonu.} & +5b \\
+    \hline
+    \textit{Ošetření singulárního případu u obou algoritmů: bod je totožný s vrcholem jednoho či více polygonů.} & +2b \\
+    \hline
+    \textit{Zvýraznění úsech polygonů pro oba výše uvedené singulární případy.} & +3b \\
+    \hline
+    \textit{Rychlé vyhledání potenciálních polygonů (bod uvnitř min-max boxu).} & +10b \\
+    \hline
+    \textit{Načtení vstupních dat ze *.shp.} & +10b \\
+    \hline
+    \textbf{Celkem splněno:} & \textbf{55b} \\
+    \hline
+\end{longtable}
+\end{small}
+
+\section{Úvod do problematiky}
+Nejenom v počítačové kartografii, ale i v jiných oblastech geoinformatiky se občas setkáváme s řešením úlohy o vzájemné poloze bodu a polygonu. Tento problém, který se označuje \textit{Point Location Problem}, je jedním ze základních problémů v této oblasti.
+
+Existují dvě techniky řešení problému:
+\begin{itemize}
+  \item \textit{Převedení problému na vztah bodu a mnohoúhelníku} - problém řešen pomocí opakovaného určení polohy bodu vzheledek k mnohoúhelníku. Toto řešení je pomalejší, ale snadnější na implementaci.
+  \item \textit{Planární dělení roviny} - rovina je rozdělena na množinu pásů ci lichoběžníků a z nich vzniká tzv. \textit{trapezoidální mapa}. Toto řešení je výrazně rychlejší, ale její implementace je obtížná, jelikož využívá speciální datové struktury (např. binární stromy).
+\end{itemize}
+
+Do tohoto problému dále zasahují i vlastnosti hledaných polygonů, resp. jejich geometrie. Jedná se o konvexní a nekonvexní polygony. U konvexních polygonů (všechny jejich vnitřní úhly mají maximální velikost 180°) je problematika jednodušší než u nekonvexních. Příkladem nekonvexních polygonů z praxe mohou být např. hranice správních obvodů či přírodní jevy.
+
+
+Pro řešení tohoto typu problému byly využity dva základní algoritmy \textit{Ray Crossing} a \textit{Winding Number} \parencite{bayer}.
+
+\section{Filtrování pomocí Min-Max Boxu}
+Pro optimalizaci a urychlení výpočtů algortimů nad polygony, které mohou mít velké množství vrcholu byla zvolena metoda filtrace pomocí tzv. \textit{Min-Max Boxu}. 
+
+Princip spočívá v nalezení extrémních souřadnic daného polygonu. Prochází se všechny jeho vrcholy a hledají se minimální a maximální hodnoty na obou osách:
+
+$$ x_{min} = \min(x_i), \quad x_{max} = \max(x_i) $$
+$$ y_{min} = \min(y_i), \quad y_{max} = \max(y_i) $$
+
+Tyto čtyři hodnoty vytvoří kolem polygonu pomyslný obdélník. Ještě před samotným spuštěním algoritmů je kontrolováno, zda souřadnice analyzovaného bodu $q(x_q, y_q)$ vůbec leží uvnitř tohoto obdélníku. Testuje se následující podmínka:
+
+$$ (x_q < x_{min}) \lor (x_q > x_{max}) \lor (y_q < y_{min}) \lor (y_q > y_{max}) $$
+
+Pokud je tato podmínka splněna, je bod s jistotou mimo polygon a algoritmus může okamžitě výpočet ukončit s návratovou hodnotou $-2$. Pokud bod projde tímto filtrem (nachází se uvnitř obdélníku), přistupuje program k samotnému zvolenému algoritmu. Tento krok snižuje výpočetní čas při prohledávání rozsáhlých dat.
+
+
+\section{\textit{Ray Crossing Algorithm}}
+
+Principem této metody je polopřímka \textit{r} (paprsek, tzv. \textit{Ray}), která je vedena naším zvoleným bodem \textit{q}. Poté se zkoumá, kolikrát (\textit{k}) tento paprsek protnul hrany zkoumaného polygonu. Pomocí následujícího rozhodovacího pravidla následně rozhodne, zda je bod vně (\textit{k} je liché) či uvnitř (\textit{k} je sudé) polygonu.
+
+
+\[
+k\%2 =
+\begin{cases} 
+    1, & q \in P, \\
+    0, & q \notin P
+\end{cases}
+\]
+
+Tento princip lze pozorovat i na obrázku 1.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{ray_crossing.png}
+    \caption{Princip Ray Crossing \parencite{obrazek1}}
+\end{figure}
+
+
+Pro zjednodušení výpočtů se používá posunutí souřadnicového systému tak, aby počátek náležel právě zkoumanému bodu \textit{$(x_q, y_q)$}. Nové souřadnice jednotlivých vrcholů polygonu se vypočítají následovně:
+
+$$ x'_i = x_i - x_q $$
+$$ y'_i = y_i - y_q $$
+
+Jelikož je paprsek definován jako kladná poloosa \textit{x} je možné odovodit vhodný průsečík $x_m$ s hranou polygonu pomocí následujícího vztahu:
+
+
+$$ x_m = \frac{x'_{i+1} y'_i - x'_i y'_{i+1}}{y'_{i+1} - y'_i} $$
+
+Pokud je výpočet $> 0$, tak hrana protíná náš paprsek a započítává se průsečík. Pokud je hodnota $ = 0$, bod leží přímo na hraně polygonu \parencite{bayer}.
+
+Co se týče \textbf{singularit}, tedy bod leží přesně \textbf{na hraně} polygonu či \textbf{ve vrcholu}. Pokud bod leží na hraně, pak $x_m = 0$ a v našem algoritmu hned vracíme hodnotu $-1$, tedy "bod leží na hraně". Pokud se jedná o situaci, kdy je bod totožný s vrcholem, tedy $x'_i = 0$ a $y'_i = 0$, algoritmus okamžitě tuto situaci kontroluje a opět vrací hodnotu $-1$.
+
+
+Další možnosti vzniku singularity je, že nás paprsek prochází vrcholem polygonu. V tomto případě by mohl být průsečík započítán dvakrát. I to je kontrolováno tak, aby vrchol vždy náležel pouze k jedné ze dvou sousedních hran a průsečí se započítal pouze jednou, tedy $(y_{i+1}' > 0) \land (y_i' \le 0)$ nebo $(y_{i+1}' < 0) \land (y_i' \ge 0)$.
+
+\section{\textit{Winding Number Algorithm}}
+Tato metoda oproti \textit{Ray Crossing} nepracuje s průsečíky, ale počítá sumu všech rotací $\Omega$. Za tyto rotace lze označit úhly mezi jednotlivými průsečíky bodu \textit{q} s vrcholy polygonu (obrázek 2). Na tomto principu pak algoritmus rozhoduje, zda bod leží uvnitř či vně zkoumaného polygonu:
+
+$$ |\Omega| \approx 2\pi \xrightarrow{} q \in P $$
+$$ |\Omega| < 2\pi \xrightarrow{} q \notin P $$
+
+Pokud je absolutní hodnota sumy vnitřních úhlů je přibližně $2\pi$, bod se nachází uvniř polygonu. Pokud je hodnota menší, bod by měl ležet mimo polygon či na hraně polygonů \parencite{bayer}.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{wn.png}
+    \caption{Princip Winding Number \parencite{obrazek2}}
+\end{figure}
+
+Ke každému vrcholu polygonu $p_i = (x_i,y_i)$ a $p_{i+1} = (x_{i+1},y_{i+1})$ jsou z bodu \textit{q} počítány vektory 
+
+$$ \vec{v_1} = (x_i - x_q, y_i - y_q) $$
+$$ \vec{v_2} = (x_{i+1} - x_q, y_{i+1} - y_q) $$
+
+Velikost úhlu $\alpha$ mezi těmito vektory se následně vypočítá pomocí jejich skalárního součinu a euklidovských vzdáleností s využitím funkce arkus kosinus:
+
+$$ \alpha = \arccos\left(\frac{\vec{v_1} \cdot \vec{v_2}}{|\vec{v_1}| |\vec{v_2}|}\right) $$
+
+
+Ke správné orientaci sčítání úhlů je potřeba určit, na které straně hrany leží bod \textit{q}. Lze využít tzv. \textit{cross product}.
+
+
+$$D = (x_{i+1} - x_i)(y_q - y_i) - (y_{i+1} - y_i)(x_q - x_i)$$
+
+Pokud je $D > 0$, bod je na levé straně hrany a úhly se budou sčítat, pokud je $D < 0$, situace je opačná a úhly se budou odečítat. Z tohoto důvodu je v úvodu napsána $|\Omega|$.
+
+
+Co se týče \textbf{singularit}, náš algoritmus přesně detekuje, zda bod leží \textbf{ve vrcholu} nebo \textbf{na hraně}. Pokud je bod totožný s některým z vrcholů, velikost jednoho z vektorů je nulová ($|\vec{v_1}| = 0$ nebo $|\vec{v_2}| = 0$). V takovém případě algoritmus okamžitě vrací hodnotu $-1$.
+
+Pokud testovaný bod leží \textbf{na hraně} polygonu, úhel $\alpha$ svírající vektory tvoří přímku, je tedy roven $\pi$, a vektorový součin je roven nule. Jelikož algoritmus pracuje s desetinnými čísly a goniometrickými funkcemi, jsou pro eliminaci zaokrouhlovacích chyb využívány tolerance $\epsilon = 1.0 \cdot 10^{-7}$.
+
+\section{Popis aplikace}
+Pro analýzu polohy bodu a polygonu byla vytvořena kostra aplikace pomocí programu \textit{QT Designer}. Tato kostra byla dále upravena v programovacím jazyce Python. V této části byla v různých případech použita AI z důvodu úpravy syntaxe či navrhnutí workflow (např. pro nahrání souboru .shp) a případného vysvětlení či objasnění problému.
+
+Uživatel má možnost výběru dvou výše zmíněných algoritmů k určení pozice bodu a polygonu. Jednotlivé akce jsou spustitelné pomocí ikon v liště aplikace (obrázek 3). Uživatel si může pomocí kursoru vytvořit vlastní polygon či při přepnutí módu (pomocí ikony \textit{Point/Polygon}) udávat pozici bodu. Pokud má uživatel vlastní soubor .shp, lze ho nahrát pomocí tlačítka \textit{File} -$>$ \textit{Open}.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{aplikace.png}
+    \caption{Okno aplikace s ručně vytvořeným polygonem}
+\end{figure}
+
+
+\textbf{Vstupními daty} mohou být tedy i data ve formátu .shp. Uživatel si může vybrat vlastní soubor z lokálního uložiště a nahrát ho do aplikace. Algoritmus vypočítá maximální šířku a výšku celého území a vypočítá vhodné měřítko pro zasazení polygonů na plátko aplikace. Aby se polygony vykreslily správně, bylo nutné souřadnice jednotlivých vrcholů přepočítat pomocí měřítka a také posunout pomocí \textit{offsetu}. Tento krok byl důležitý, jelikož počátek plátna náleží hornímu levému rohu okna. Každý přepočítaný polygon je převeden na objekt \textit{QPolygonF} a uložen do seznamu, ze kterého byly objekty vykresleny na plátno.
+
+\textbf{Výstupem} aplikace je správně určený polygon, ve kterém se nachází hledaný bod \textit{q} (zobrazen červenou tečkou). Takto určený polygon je následně obarven zelenou barvou s příslušnou hláškou podle zvoleného algoritmu (obrázek 4).
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{spravny_polygon.png}
+    \caption{Výsledek detekce bodu}
+\end{figure}
+
+Pomocí \textbf{číselné interpretace} byly zajištěny různé výsledky z algoritmů, které sloužily jako doplňkové informace o řešení polohy bodu a polygonu. Každý algoritmus po dokončení analýzy vrací jednu ze čtyř celočíselných hodnot, díky které obarvuje polygony a vypisuje uživateli příslušné hlášení do vyskakovacího okna:
+
+\begin{itemize}
+    \item \textbf{Hodnota 1 (Uvnitř):} Testovaný bod se nachází bezpečně uvnitř polygonu. Polygon je překreslen tmavě zelenou barvou.
+    \item \textbf{Hodnota 0 (Vně):} Testovaný bod se nachází mimo polygon. Polygon zůstává ve výchozí žluté barvě.
+    \item \textbf{Hodnota -1 (Singularita):} Testovaný bod leží přesně na hranici polygonu (na hraně nebo přímo ve vrcholu). Aplikace vytvoří specifickou hlášku a polygony obarví azurovou barvou.
+    \item \textbf{Hodnota -2 (Filtrováno):} Testovaný bod leží zcela mimo opsaný obdélník (Min-Max Box). Algoritmus vůbec neprováděl výpočet a rovnou bod vyloučil. Polygon zůstává žlutý.
+\end{itemize}
+
+
+\section{Popis tříd a jejich metod}
+\subsection{Třída \textit{MainForm}}
+Tato třída je hlavním třídou aplikace. Stará se o okno aplikace a propojení tlačítek s funkcemi.
+
+\begin{itemize}
+  \item \textbf{setupUi} - Inicializuje a rozmisťuje grafické prvky v okně aplikace a propojuje je s příslušnými funkcemi.
+  \item \textbf{changeStatusClick} - Reaguje na kliknutí tlačítka a mění mod mezi kreslením polygonu a změnou pozice testovacího bodu.
+  \item \textbf{clearClick} - Maže veskeré vykreslené polygony a body.
+  \item \textbf{analyzePointAndPositionClick} - Spouští analýzu polohy bodu pro všechny vykreslené polygony pomocí algoritmu \textit{Ray Crossing} a otevře vyskakovací okno s výsledkem.
+  \item \textbf{analyzeWindingNumberClick} - Spouští analýzu polohy bodu pro všechny vykreslené polygony pomocí algoritmu \textit{Winding Number} a otevře vyskakovací okno s výsledkem.
+  \item \textbf{retranslateUi} - Nastavuje textové popisky v uživatelském rozhraní.
+  \item \textbf{openFile} - Otevírá okno s cestou na disku k volbě .shp souboru.
+  \item \textbf{loadShapefile} - Načte vybraná .shp soubor, přepočítá souřadnice vrcholů a převede do seznamu polygonů.
+\end{itemize}
+
+\subsection{Třída \textit{Algorithms}}
+V této třídě se vyskytují výpočty a algoritmy.
+
+\begin{itemize}
+  \item \textbf{getPointPolygonPositionRC} - Určuje polohu testovaného bodu vůči zadanému polygonu pomocí algoritmu \textit{Ray Crossing} a vrací výsledek ve formě kódu (1, 0, -1 nebo -2).
+  \item \textbf{getPointPolygonPositionWN} - Určuje polohu testovaného bodu vůči zadanému polygonu pomocí algoritmu \textit{Winding Number} a vrací výsledek ve stejné formě.
+\end{itemize}
+
+\subsection{Třída \textit{Draw}}
+Tato třída se stará o vykreslování samotného plátna, interakci s kursorem a vykreslení dat.
+
+\begin{itemize}
+  \item \textbf{mousePressEvent} - Zaznamenání kliknutí myší do plátna a podle modu vykreslí vrchol polygonu nebo změní pozici bodu.
+  \item \textbf{PaintEvent} - Zajišťuje vykreslení polygonů a bodu na plátno. Na základě výsledku z algoritmu přebarví příslušný polygon zeleně, modře nebo žlutě.
+  \item \textbf{changeStatus} - Přepíná mezi režimem přidávání bodu k polygonu či změnu pozice bodu.
+  \item \textbf{clearData} - Vymaže plátno a nastaví výsledky do původního stavu.
+  \item \textbf{getQ} - Vrací aktuální sořadnice testovaného bodu pro výpočty algoritmů.
+  \item \textbf{getPols} - Vrací seznam všech existujících polygonů.
+  \item \textbf{setPols} - Nahradí aktuální polygony na plátně novými, vybranými ze .shp.
+  \item \textbf{setResult} - Uloží příslušný výsledek analýzy a indexu polygonu a požádá o překreslené polygonu.
+\end{itemize}
+
+
+\printbibliography[title={Zdroje}]
+
+
+\end{document}
