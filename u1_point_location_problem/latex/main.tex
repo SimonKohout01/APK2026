@@ -122,7 +122,7 @@ $$ (x_q < x_{min}) \lor (x_q > x_{max}) \lor (y_q < y_{min}) \lor (y_q > y_{max}
 Pokud je tato podmínka splněna, je bod s jistotou mimo polygon a algoritmus může okamžitě výpočet ukončit s návratovou hodnotou $-2$. Pokud bod projde tímto filtrem (nachází se uvnitř obdélníku), přistupuje program k samotnému zvolenému algoritmu. Tento krok snižuje výpočetní čas při prohledávání rozsáhlých dat.
 
 
-\section{\textit{Ray Crossing Algorithm}}
+\section{{Ray Crossing Algorithm}}
 
 Principem této metody je polopřímka \textit{r} (paprsek, tzv. \textit{Ray}), která je vedena naším zvoleným bodem \textit{q}. Poté se zkoumá, kolikrát (\textit{k}) tento paprsek protnul hrany zkoumaného polygonu. Pomocí následujícího rozhodovacího pravidla následně rozhodne, zda je bod vně (\textit{k} je liché) či uvnitř (\textit{k} je sudé) polygonu.
 
@@ -162,7 +162,7 @@ Co se týče \textbf{singularit}, tedy bod leží přesně \textbf{na hraně} po
 
 Další možnosti vzniku singularity je, že nás paprsek prochází vrcholem polygonu. V tomto případě by mohl být průsečík započítán dvakrát. I to je kontrolováno tak, aby vrchol vždy náležel pouze k jedné ze dvou sousedních hran a průsečí se započítal pouze jednou, tedy $(y_{i+1}' > 0) \land (y_i' \le 0)$ nebo $(y_{i+1}' < 0) \land (y_i' \ge 0)$.
 
-\section{\textit{Winding Number Algorithm}}
+\section{Winding Number Algorithm}
 Tato metoda oproti \textit{Ray Crossing} nepracuje s průsečíky, ale počítá sumu všech rotací $\Omega$. Za tyto rotace lze označit úhly mezi jednotlivými průsečíky bodu \textit{q} s vrcholy polygonu (obrázek 2). Na tomto principu pak algoritmus rozhoduje, zda bod leží uvnitř či vně zkoumaného polygonu:
 
 $$ |\Omega| \approx 2\pi \xrightarrow{} q \in P $$
@@ -195,9 +195,31 @@ $$D = (x_{i+1} - x_i)(y_q - y_i) - (y_{i+1} - y_i)(x_q - x_i)$$
 Pokud je $D > 0$, bod je na levé straně hrany a úhly se budou sčítat, pokud je $D < 0$, situace je opačná a úhly se budou odečítat. Z tohoto důvodu je v úvodu napsána $|\Omega|$.
 
 
-Co se týče \textbf{singularit}, náš algoritmus přesně detekuje, zda bod leží \textbf{ve vrcholu} nebo \textbf{na hraně}. Pokud je bod totožný s některým z vrcholů, velikost jednoho z vektorů je nulová ($|\vec{v_1}| = 0$ nebo $|\vec{v_2}| = 0$). V takovém případě algoritmus okamžitě vrací hodnotu $-1$.
 
-Pokud testovaný bod leží \textbf{na hraně} polygonu, úhel $\alpha$ svírající vektory tvoří přímku, je tedy roven $\pi$, a vektorový součin je roven nule. Jelikož algoritmus pracuje s desetinnými čísly a goniometrickými funkcemi, jsou pro eliminaci zaokrouhlovacích chyb využívány tolerance $\epsilon = 1.0 \cdot 10^{-7}$.
+
+
+\section{Singulární případy}
+V rámci implementace obou algoritmů bylo nezbytné korektně ošetřit \textbf{singulární} případy. Konkrétně se jedná o situace, kdy analyzovaný bod $q$ leží přímo ve vrcholu polygonu, nebo incidentně leží kdekoli jinde na některé z jeho hran.
+
+\subsection{\textbf{Bod je totožný s vrcholem polygonu}}
+Tato singularita nastává, pokud analyzovaný bod $q = (x_q, y_q)$ splývá s některým vrcholem polygonu $P_i = (x_i, y_i)$. Geometricky to znamená, že euklidovská vzdálenost mezi těmito dvěma body je rovna nule, neboli velikost směrového vektoru $\vec{v}_1 = P_i - q$ je nulová. Výpočet velikosti vektoru je definován vztahem:
+
+$$\Vert \vec{v}_1 \Vert = \sqrt{(x_i - x_q)^2 + (y_i - y_q)^2} = 0$$
+
+Pokud je tato podmínka splněna (případně i pro vektor $\vec{v}_2$ směrující k 
+ná\-sle\-du\-jí\-cí\-mu vrcholu), algoritmus detekuje singularitu a okamžitě vrací hodnotu -1.
+
+\subsection{\textbf{Bod leží na hraně polygonu}}
+Předpokládejme hranu polygonu definovanou vrcholy $P_i$ a $P_{i+1}$. Analyzovaný bod $q$ tvoří s těmito vrcholy dva vektory: 
+
+$$\vec{v}_1 = P_i - q$$ 
+$$\vec{v}_2 = P_{i+1} - q$$
+
+Pokud bod $q$ leží přesně na úsečce mezi vrcholy, pak jsou vektory $\vec{v}_1$ a $\vec{v}_2$ kolineární (leží v jedné přímce) a směřují do opačných směrů.Z kolinearity vektorů ve 2D prostoru vyplývá, že jejich determinant (neboli $z$-tová složka vektorového součinu) musí být roven nule:$$\det(\vec{v}_1, \vec{v}_2) = v_{1x}v_{2y} - v_{1y}v_{2x} = 0$$Opačná orientace vektorů geometricky znamená, že úhel $\alpha$, který tyto vektory svírají, je roven přímému úhlu, tedy $\pi$ radiánů ($180^\circ$). Velikost tohoto úhlu je v algoritmu odvozena ze skalárního součinu obou vektorů:
+$$\cos \alpha = \frac{\vec{v}_1 \cdot \vec{v}_2}{\Vert \vec{v}_1 \Vert \Vert \vec{v}_2 \Vert} \quad \implies \quad \alpha = \arccos\left( \frac{v_{1x}v_{2x} + v_{1y}v_{2y}}{\Vert \vec{v}_1 \Vert \Vert \vec{v}_2 \Vert} \right) = \pi$$
+
+\textbf{Eliminace zaokrouhlovacích chyb}. Vzhledem k tomu, že výpočet probíhá v oboru reálných čísel a využívá výpočetně náročné goniometrické funkce, dochází při strojovém zpracování k drobným zaokrouhlovacím chybám. Rovnost s nulou nebo s hodnotou $\pi$ tedy nelze testovat absolutně. Pro robustní detekci hrany je zavedena toleranční mez $\epsilon = 1.0 \cdot 10^{-7}$. Singulární případ hrany je algoritmem potvrzen pouze tehdy, platí-li:$$|\det(\vec{v}_1, \vec{v}_2)| < \epsilon \quad \land \quad |\alpha - \pi| < \epsilon$$
+
 
 \section{Popis aplikace}
 Pro analýzu polohy bodu a polygonu byla vytvořena kostra aplikace pomocí programu \textit{QT Designer}. Tato kostra byla dále upravena v programovacím jazyce Python. V této části byla v různých případech použita AI z důvodu úpravy syntaxe či navrhnutí workflow (např. pro nahrání souboru .shp) a případného vysvětlení či objasnění problému.
@@ -270,6 +292,13 @@ Tato třída se stará o vykreslování samotného plátna, interakci s kursorem
   \item \textbf{setResult} - Uloží příslušný výsledek analýzy a indexu polygonu a požádá o překreslené polygonu.
 \end{itemize}
 
+\section{Závěr}
+
+Prostřednictvím funkční desktopové aplikace s grafickým uživatelským rozhraním v prostředí PyQt byly úspěšně implementovány algoritmy Ray Crossing a Winding Number pro řešení problematiky prostorového vztahu bodu a polygonu (Point Location Problem). Součástí řešení je i ošetření singulárních případů, kdy analyzovaný bod leží přímo na hraně polygonu nebo v jednom z jeho vrcholů. Aplikace v těchto situacích poskytuje uživateli okamžitou textovou i vizuální zpětnou vazbu pomocí barevného zvýraznění detekovaného polygonu. Pro optimalizaci a zrychlení výpočtů nad rozsáhlejšími datovými sadami, které lze do aplikace importovat ve formátu Shapefile (*.shp), byla navíc úspěšně aplikována metoda filtrace potenciálních polygonů pomocí tzv. Min-Max Boxu.
+
+Přestože předložená aplikace splňuje hlavní požadavky zadání, lze najít několik oblastí, které by bylo možné dále rozšířit a vylepšit. Aktuální verze programu využívá základní datovou reprezentaci polygonů, která neumožňuje zpracování komplexních geometrií, jako jsou polygony s vnitřními dírami nebo. Možnost importu vstupních polygonů je aktuálně omezena pouze na formát Shapefile, tudíž by bylo přínosné rozšířit podporu i o další moderní geoprostorové formáty (např. GeoJSON) a umožnit načítání více vrstev nad sebou.
+
+Z hlediska uživatelského rozhraní a celkové interakce by vhodným vylepšením byla implementace nástrojů pro posouvání a přibližování (pan \& zoom) plátna, na kterém jsou polygony vykresleny, což by výrazně usnadnilo orientaci v hustých mapových podkladech. Uživatelskému komfortu by také přispělo plně automatické spouštění analýzy ihned po změně polohy testovaného bodu, bez nutnosti manuálního vyvolání akce přes horní lištu. Zajímavým rozšířením by mohla být také přímá grafická vizualizace průběhu algoritmů na plátně, například reálné vykreslení testovacího paprsku u metody Ray Crossing nebo vizualizace jednotlivých vektorů a úhlů u metody Winding Number.
 
 \printbibliography[title={Zdroje}]
 
