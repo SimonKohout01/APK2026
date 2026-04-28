@@ -143,7 +143,16 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(self.actionParameters)
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionExit)
-        
+        # Dropdown menu for selecting color schemes for ASPECT
+        self.menuAspectColors = QtWidgets.QComboBox(parent=MainWindow)
+        self.menuAspectColors.addItems(["Aspect: Rainbow", "Aspect: Pastel Rainbow", "Aspect: Magma", "Aspect: Contrast"])
+        self.toolBar.addWidget(self.menuAspectColors)
+
+        # Dropdown menu for selecting color schemes for SLOPE
+        self.menuSlopeColors = QtWidgets.QComboBox(parent=MainWindow)
+        self.menuSlopeColors.addItems(["Slope: Grayscale", "Slope: Yellow-Red", "Slope: White-Blue", "Slope: White-Purple"])
+        self.toolBar.addWidget(self.menuSlopeColors)
+
         #Connects
         self.actionCreate_DT.triggered.connect(self.createDTClick)
         self.actionCreateContouLines.triggered.connect(self.createContourLinesClick)
@@ -157,7 +166,8 @@ class Ui_MainWindow(object):
         self.actionAnalyzeExposition.triggered.connect(self.analyzeExpositionClick)
         self.actionParameters.triggered.connect(self.settingsClick)
         self.actionOpen.triggered.connect(self.openFileClick)
-        
+        self.menuAspectColors.currentIndexChanged.connect(self.changeAspectColorsClick)
+        self.menuSlopeColors.currentIndexChanged.connect(self.changeSlopeColorsClick)
 
         self.retranslateUi(MainWindow)
         
@@ -389,7 +399,23 @@ class Ui_MainWindow(object):
         self.Canvas.setPoints(points)
         self.Canvas.clearResults()
 
+    def changeAspectColorsClick(self):
+        # Get the currently selected index (0, 1, 2, or 3)
+        selected_index = self.menuAspectColors.currentIndex()
 
+        # Send the index to the canvas
+        self.Canvas.setAspectScheme(selected_index)
+
+        self.Canvas.repaint()
+
+    def changeSlopeColorsClick(self):
+        # Get the current index of the dropdown (0, 1, 2, or 3)
+        selected_index = self.menuSlopeColors.currentIndex()
+        
+        # Send the number to the Canvas
+        self.Canvas.setSlopeScheme(selected_index)
+ 
+        self.Canvas.repaint()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

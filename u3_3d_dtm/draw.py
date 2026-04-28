@@ -18,18 +18,32 @@ class Draw(QWidget):
         self.__view_Aspect = False
         self.__view_Contours = True
         
-        self.aspect_colors = [
-            QColor("#fa0100"),
-            QColor("#ffa401"),
-            QColor("#fdfe01"),
-            QColor("#00fe03"),
-            QColor("#00ffff"),
-            QColor("#00a5fe"),
-            QColor("#0000fd"),
-            QColor("#fc00f9"),]
+        # Different color schemes for user to choose from - help from AI with a pseudocode
+        # Stores the selected scheme index
+        self.__aspect_scheme = 0
         
-    
-        
+        # 0 = bright rainbow
+        self.aspect_colors_0 = [
+            QColor("#fa0100"), QColor("#ffa401"), QColor("#fdfe01"), QColor("#00fe03"),
+            QColor("#00ffff"), QColor("#00a5fe"), QColor("#0000fd"), QColor("#fc00f9")]
+            
+        # 1 = pastel rainbow
+        self.aspect_colors_1 = [
+            QColor("#FFB5B5"), QColor("#FFD9B5"), QColor("#FFFFB5"), QColor("#B5FFC9"),
+            QColor("#80E5FF"), QColor("#A0C4FF"), QColor("#C4B5FD"), QColor("#FFB5FF")]
+            
+        # 2 = magma
+        self.aspect_colors_2 = [
+            QColor("#003F5C"), QColor("#58508D"), QColor("#8A508F"), QColor("#BC5090"),
+            QColor("#DE5A8D"), QColor("#FF6361"), QColor("#FF8531"), QColor("#FFA600")]
+            
+        # 3 = contrast scheme
+        self.aspect_colors_3 = [
+            QColor("#111D31"), QColor("#EAE5DF"), QColor("#5CA6CA"), QColor("#2376B7"),
+            QColor("#F29F05"), QColor("#D02339"), QColor("#84404D"), QColor("#405E72")]
+
+        # Stores the selected scheme index
+        self.__slope_scheme = 0
         
     def mousePressEvent(self, e):
         #Get cursor coordinates 
@@ -78,8 +92,15 @@ class Draw(QWidget):
                 #Calculate color index
                 idx = int((aspect + res/2) / res) % 8
 
-                #Assign brush color
-                color = self.aspect_colors[idx]
+                # Picks the color of the selected scheme 0-3
+                if self.__aspect_scheme == 0:
+                    color = self.aspect_colors_0[idx]
+                elif self.__aspect_scheme == 1:
+                    color = self.aspect_colors_1[idx]
+                elif self.__aspect_scheme == 2:
+                    color = self.aspect_colors_2[idx]
+                elif self.__aspect_scheme == 3:
+                    color = self.aspect_colors_3[idx]
                 qp.setBrush(color)
                 
                 #Draw polygon
@@ -101,10 +122,25 @@ class Draw(QWidget):
 
                 #Rescale slope to 0-255
                 k = (2*255) / pi
-                gray = int(255 - (slope * k))
+                interpolation = int(255 - (slope * k))
 
                 #Create Qt Color
-                color = QColor(gray, gray, gray)
+                # QColor(int 'red', int 'green', int 'blue', int a = 255)
+                if self.__slope_scheme == 0:
+                    # 0 = White to black
+                    color = QColor(interpolation, interpolation, interpolation)
+                    
+                elif self.__slope_scheme == 1:
+                    # 1 = Yellow to red
+                    color = QColor(255, interpolation, 0)
+                    
+                elif self.__slope_scheme == 2:
+                    # 2 = White to blue
+                    color = QColor(interpolation, interpolation, 255)
+                    
+                elif self.__slope_scheme == 3:
+                    # 3 = White to Pink
+                    color = QColor(255, interpolation, 255)
 
                 #Assign brush color
                 qp.setBrush(color)
@@ -247,6 +283,11 @@ class Draw(QWidget):
         self.__result = res
         self.repaint()
         
-    
-        
+    def setAspectScheme(self, scheme_index):
+        # Saves the index of the color scheme
+        self.__aspect_scheme = scheme_index
+
+    def setSlopeScheme(self, scheme_index):
+        # Saves the index of the color scheme
+        self.__slope_scheme = scheme_index    
         
